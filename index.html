@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="en">
+
+  <head>
+    <meta charset="UTF-8">
+    <title>Untitled</title>
+    
+
+  </head>
+    
+  <body>
+  <!DOCTYPE html>
+
+<html lang="hi">
+
+<head>
+
+<meta charset="UTF-8">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Chai Apki Pasand</title>
+
+<style>
+
+body{font-family:Arial;margin:0;background:#fff7ec;}
+
+header{background:#2e7d32;color:white;padding:15px;text-align:center;}
+
+h3{margin:10px 15px;color:#2e7d32;}
+
+.menu{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:15px;padding:15px;}
+
+.card{background:white;border-radius:12px;padding:10px;text-align:center;box-shadow:0 0 8px #ccc;}
+
+.card img{width:100%;height:120px;object-fit:cover;border-radius:10px;}
+
+.btn{background:#ff9800;color:white;border:none;padding:8px 14px;border-radius:20px;margin-top:6px;cursor:pointer;}
+
+.cart,.custom,.admin{padding:15px;}
+
+.whatsapp{background:#25D366;color:white;font-size:18px;width:100%;padding:12px;border:none;border-radius:30px;cursor:pointer;}
+
+input,select{width:100%;padding:8px;margin:5px 0;}
+
+table{width:95%;margin:10px auto;border-collapse:collapse;}
+
+table,th,td{border:1px solid #ccc;}
+
+th,td{padding:8px;text-align:center;}
+
+.qr-container{text-align:center;margin:15px;}
+
+.qr-container img{width:150px;height:150px;}
+
+</style>
+
+</head>
+
+<body>
+
+<header>
+
+<h2>☕ Chai Apki Pasand</h2>
+
+<p>QR Scan करके Order करें</p>
+
+</header>
+
+<!-- QR Code -->
+
+<div class="qr-container">
+
+<p>Scan QR to open menu:</p>
+
+<img id="qrCode" src="" alt="QR Code">
+
+</div>
+
+<!-- Admin Login -->
+
+<div class="admin" id="adminLogin">
+
+<h3>Owner Login</h3>
+
+<input type="text" id="adminUser" placeholder="Username">
+
+<input type="password" id="adminPass" placeholder="Password">
+
+<button class="btn" onclick="adminLogin()">Login</button>
+
+<p id="loginError" style="color:red"></p>
+
+</div>
+
+<!-- Admin Panel -->
+
+<div class="admin" id="adminPanel" style="display:none">
+
+<h3>Admin Dashboard <button class="btn" onclick="logout()">Logout</button></h3>
+
+<h3>Add Item</h3>
+
+<select id="catSelect">
+
+<option value="Chai">Chai</option>
+
+<option value="Burger">Burger</option>
+
+<option value="Sandwich">Sandwich</option>
+
+</select>
+
+<input type="text" id="itemName" placeholder="Item Name">
+
+<input type="number" id="itemPrice" placeholder="Price ₹">
+
+<input type="file" id="itemImg">
+
+<button class="btn" onclick="addItem()">Add Item</button>
+
+<h3>Items List</h3>
+
+<table id="itemTable">
+
+<tr><th>Category</th><th>Name</th><th>Price</th><th>Image</th><th>Delete</th></tr>
+
+</table>
+
+<h3>Daily & Total Sales Report</h3>
+
+<table id="salesTable">
+
+<tr><th>Date</th><th>Time</th><th>Items</th><th>Total ₹</th></tr>
+
+</table>
+
+</div>
+
+<!-- Customer Menu -->
+
+<div id="menuContainer"></div>
+
+<!-- Cart -->
+
+<div class="cart">
+
+<h3>🛒 Order</h3>
+
+<p id="orderList"></p>
+
+<button class="whatsapp" onclick="sendOrder()">📲 WhatsApp Order</button>
+
+</div>
+
+<script>
+
+let order=[], items=[], sales={};
+
+const adminUser="Chai";
+
+const adminPass="Chai@#123";
+
+// QR Code Setup - Change YOUR HOST URL here
+
+let hostURL = "https://yourhost.com/ChaiApkiPasand.html";
+
+document.getElementById("qrCode").src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data="+encodeURIComponent(hostURL);
+
+// Initialize localStorage
+
+if(!localStorage.getItem("items")) localStorage.setItem("items",JSON.stringify([]));
+
+if(!localStorage.getItem("sales")) localStorage.setItem("sales",JSON.stringify({}));
+
+items = JSON.parse(localStorage.getItem("items"));
+
+sales = JSON.parse(localStorage.getItem("sales"));
+
+// Admin Login
+
+function adminLogin(){
+
+let u=document.getElementById("adminUser").value;
+
+let p=document.getElementById("adminPass").value;
+
+if(u===adminUser && p===adminPass){
+
+  document.getElementById("adminLogin").style.display="none";
+
+  document.getElementById("adminPanel").style.display="block";
+
+  renderAdminItems();
+
+  renderSales();
+
+}else{document.getElementById("loginError").innerText="Wrong credentials";}
+
+}
+
+function logout(){
+
+document.getElementById("adminPanel").style.display="none";
+
+document.getElementById("adminLogin").style.display="block";
+
+}
+
+// Add Item
+
+function addItem(){
+
+let cat=document.getElementById("catSelect").value;
+
+let name=document.getElementById("itemName").value;
+
+let price=document.getElementById("itemPrice").value;
+
+let file=document.getElementById("itemImg").files[0];
+
+if(!name||!price||!file){alert("Fill all fields");return;}
+
+let reader=new FileReader();
+
+reader.onload=function(e){
+
+items.push({cat,name,price,img:e.target.result});
+
+localStorage.setItem("items",JSON.stringify(items));
+
+renderAdminItems();
+
+renderMenu();
+
+}
+
+reader.readAsDataURL(file);
+
+document.getElementById("itemName").value="";
+
+document.getElementById("itemPrice").value="";
+
+document.getElementById("itemImg").value="";
+
+}
+
+// Delete Item
+
+function deleteItem(idx){
+
+items.splice(idx,1);
+
+localStorage.setItem("items",JSON.stringify(items));
+
+renderAdminItems();
+
+renderMenu();
+
+}
+
+// Render Admin Items
+
+function renderAdminItems(){
+
+let table=document.getElementById("itemTable");
+
+table.innerHTML="<tr><th>Category</th><th>Name</th><th>Price</th><th>Image</th><th>Delete</th></tr>";
+
+items.forEach((i,idx)=>{
+
+  let row=table.insertRow();
+
+  row.insertCell(0).innerText=i.cat;
+
+  row.insertCell(1).innerText=i.name;
+
+  row.insertCell(2).innerText=i.price;
+
+  let imgCell=row.insertCell(3);
+
+  let img=document.createElement("img"); img.src=i.img; img.width=50; imgCell.appendChild(img);
+
+  row.insertCell(4).innerHTML=`<button class="btn" onclick="deleteItem(${idx})">Delete</button>`;
+
+});
+
+}
+
+// Render Customer Menu
+
+function renderMenu(){
+
+let container=document.getElementById("menuContainer");
+
+container.innerHTML="";
+
+["Chai","Burger","Sandwich"].forEach(cat=>{
+
+  let catItems=items.filter(i=>i.cat===cat);
+
+  if(catItems.length>0){
+
+    container.innerHTML+=`<h3>${cat}</h3><div class="menu" id="${cat}Menu"></div>`;
+
+    let menuDiv=document.getElementById(cat+"Menu");
+
+    catItems.forEach(i=>{
+
+      let div=document.createElement("div");
+
+      div.className="card";
+
+      div.innerHTML=`<img src="${i.img}"><h4>${i.name}</h4><p>₹${i.price}</p>
+
+      <button class="btn" onclick="addToOrder('${i.name} - ₹${i.price}')">Add</button>`;
+
+      menuDiv.appendChild(div);
+
+    });
+
+  }
+
+});
+
+}
+
+// Cart
+
+function addToOrder(item){order.push(item);document.getElementById("orderList").innerHTML=order.join("<br>");}
+
+// Send Order + Save Sales
+
+function sendOrder(){
+
+if(order.length==0){alert("Add items first");return;}
+
+let msg="New Order - Chai Apki Pasand:%0A"+order.join("%0A");
+
+window.open("https://wa.me/919720226530?text="+msg,"_blank");
+
+// Save sales with date/time/total
+
+let date=new Date().toISOString().split("T")[0];
+
+let time=new Date().toLocaleTimeString();
+
+let totalPrice=0;
+
+order.forEach(o=>{totalPrice+=parseInt(o.split("₹")[1])});
+
+if(!sales[date]) sales[date]=[];
+
+sales[date].push({time:time, items:[...order], total:totalPrice});
+
+localStorage.setItem("sales",JSON.stringify(sales));
+
+order=[]; document.getElementById("orderList").innerHTML="";
+
+renderSales();
+
+}
+
+// Render Sales Table
+
+function renderSales(){
+
+let table=document.getElementById("salesTable");
+
+table.innerHTML="<tr><th>Date</th><th>Time</th><th>Items</th><th>Total ₹</th></tr>";
+
+let grandTotal=0;
+
+for(let d in sales){
+
+  sales[d].forEach(order=>{
+
+    grandTotal+=order.total;
+
+    let row=table.insertRow();
+
+    row.insertCell(0).innerText=d;
+
+    row.insertCell(1).innerText=order.time;
+
+    row.insertCell(2).innerText=order.items.join(", ");
+
+    row.insertCell(3).innerText=order.total;
+
+  });
+
+}
+
+let row=table.insertRow();
+
+row.insertCell(0).innerText="Grand Total";
+
+row.insertCell(1).innerText="-";
+
+row.insertCell(2).innerText="-";
+
+row.insertCell(3).innerText=grandTotal;
+
+}
+
+// Initialize
+
+renderMenu();
+
+</script>
+
+</body>
+
+</html>
+    
+  </body>
+  
+</html>
